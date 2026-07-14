@@ -17,10 +17,9 @@ export default function LoginPage() {
   setIsSubmitting(true);
 
   try {
-    await signup(email, password, displayName || undefined);
+    await login(email, password);        // ← Use login, not signup
   } catch (err) {
-    console.error("Signup error:", err);
-    // Error message is handled by AuthContext
+    console.error("Login error:", err);
   } finally {
     setIsSubmitting(false);
   }
