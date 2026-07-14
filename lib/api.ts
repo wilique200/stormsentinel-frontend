@@ -91,12 +91,15 @@ export interface PredictResponse {
 // ── Auth ─────────────────────────────────────────────────────────────────
 
 export const authApi = {
-  signup: (email: string, password: string, display_name?: string) =>
-    request<Token>("/auth/signup", {
-      method: "POST",
-      body: JSON.stringify({ email, password, display_name }),
+  signup: (email: string, password: string, displayName?: string) =>
+  request<Token>("/auth/signup", {
+    method: "POST",
+    body: JSON.stringify({
+      email,
+      password,
+      display_name: displayName // ✅ match backend schema
     }),
-
+  }),
   login: (email: string, password: string) =>
     request<Token>("/auth/login", {
       method: "POST",
