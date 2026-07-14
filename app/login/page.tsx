@@ -15,14 +15,12 @@ export default function LoginPage() {
   async function handleSubmit(e: FormEvent) {
   e.preventDefault();
   setIsSubmitting(true);
-  setLocalError?.(null);        // if you have localError
 
   try {
-    await login(email, password);     // or signup(...)
-    // If we reach here, success — redirect happens in context
+    await signup(email, password, displayName || undefined);
   } catch (err) {
-    console.error(err);
-    // Do nothing — error is handled in context
+    console.error("Signup error:", err);
+    // Error message is handled by AuthContext
   } finally {
     setIsSubmitting(false);
   }
