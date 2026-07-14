@@ -56,7 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const result = await authApi.login(email, password);
       persistSession(result.access_token, result.user);
-      router.replace("/");
+      router.replace("/dashboard");
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Login failed — try again");
       throw e;
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const result = await authApi.signup(email, password, displayName);
       persistSession(result.access_token, result.user);
-      router.replace("/");
+      router.replace("/dashboard");
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "Signup failed — try again");
       throw e;
