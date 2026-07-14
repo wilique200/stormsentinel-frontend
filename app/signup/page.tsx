@@ -13,17 +13,20 @@ export default function SignupPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      await signup(email, password, displayName || undefined);
-    } catch {
-      // error state is already set by AuthContext
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
+  e.preventDefault();
+  setIsSubmitting(true);
+  setLocalError?.(null);        // if you have localError
 
+  try {
+    await login(email, password);     // or signup(...)
+    // If we reach here, success — redirect happens in context
+  } catch (err) {
+    console.error(err);
+    // Do nothing — error is handled in context
+  } finally {
+    setIsSubmitting(false);
+  }
+}
   return (
     <main className="min-h-screen flex items-center justify-center px-6 bg-base-void">
       <div className="w-full max-w-sm">
