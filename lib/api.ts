@@ -5,7 +5,7 @@
 // directly — matches the backend's actual response shapes exactly.
 // ============================================================================
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://sentinel-app-llap.onrender.com";
 
 export class ApiError extends Error {
   status: number;
