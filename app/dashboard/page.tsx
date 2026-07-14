@@ -38,7 +38,7 @@ export default function DashboardPage() {
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="flex justify-between items-center mb-10">
-          <BrandHeader size="large" />   // or just remove the size prop if it defaults nicely
+          <BrandHeader/>   // or just remove the size prop if it defaults nicely
           <button
             onClick={logout}
             className="px-5 py-2 bg-red-600/80 hover:bg-red-600 rounded-lg text-sm font-medium transition-colors"
