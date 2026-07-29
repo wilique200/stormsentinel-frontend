@@ -141,17 +141,22 @@ function DashboardContent() {
               </div>
             </div>
 
-            {/* Hazard cards */}
+            {/* Hazard cards — US-only hazards (tornado/hail/thunderstorm wind)
+                are hidden entirely for non-US locations rather than shown
+                with a repeated warning banner on each card. A single
+                compact note above explains why, instead of three copies
+                of the same paragraph eating the whole screen. */}
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-              {HAZARDS.map((h) => (
-                <HazardCard
-                  key={h.key}
-                  hazard={h}
-                  score={result.scores[h.key]}
-                  warning={h.usOnly && !result.is_us ? regionWarning : undefined}
-                />
+              {HAZARDS.filter((h) => result.is_us || !h.usOnly).map((h) => (
+                <HazardCard key={h.key} hazard={h} score={result.scores[h.key]} />
               ))}
             </div>
+
+            {!result.is_us && (
+              <p className="font-body text-[10px] text-base-muted mt-2 text-center">
+                Tornado, Hail, and Thunderstorm Wind aren&apos;t shown here — see the note above.
+              </p>
+            )}
 
             {/* Surface conditions */}
             <div className="mt-5 bg-base-panel border border-base-line rounded-lg px-5 py-3 flex flex-wrap gap-x-6 gap-y-2">
