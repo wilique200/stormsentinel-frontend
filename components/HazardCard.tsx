@@ -1,10 +1,8 @@
 import { HazardMeta, getThreatLevel } from "@/lib/hazards";
-import { HazardWarning } from "@/lib/api";
 
 interface Props {
   hazard: HazardMeta;
   score: number;
-  warning?: HazardWarning;
 }
 
 function Gauge({ score, colorHex }: { score: number; colorHex: string }) {
@@ -32,7 +30,7 @@ function Gauge({ score, colorHex }: { score: number; colorHex: string }) {
   );
 }
 
-export function HazardCard({ hazard, score, warning }: Props) {
+export function HazardCard({ hazard, score }: Props) {
   const level = getThreatLevel(score);
   const isHigh = score >= 65;
 
@@ -63,15 +61,6 @@ export function HazardCard({ hazard, score, warning }: Props) {
           {level.label}
         </div>
       </div>
-
-      {warning && (
-        <div className="bg-hazard-heat/10 border border-hazard-heat/40 rounded-lg px-2.5 py-2 mb-3 flex gap-2 items-start">
-          <span className="text-xs leading-tight">⚠️</span>
-          <span className="font-display text-[9px] text-hazard-heat font-semibold leading-snug tracking-wide">
-            NOT VALIDATED OUTSIDE US — {warning.message}
-          </span>
-        </div>
-      )}
 
       <div className="flex justify-center mb-2">
         <Gauge score={score} colorHex={hazard.colorHex} />
