@@ -1,31 +1,70 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { BrandHeader } from "@/components/BrandHeader";
 import { LocationSearch } from "@/components/LocationSearch";
 import { HazardCard } from "@/components/HazardCard";
 import { ThreatBar } from "@/components/ThreatBar";
 import { RecommendationsPanel } from "@/components/RecommendationsPanel";
+import { SavedLocationsPanel } from "@/components/SavedLocationsPanel";
+import { ChatPanel } from "@/components/ChatPanel";
 import { useAuth } from "@/context/AuthContext";
-import { predictionApi, GeocodeCandidate, PredictResponse, ApiError } from "@/lib/api";
+import { predictionApi, locationsApi, GeocodeCandidate, PredictResponse, ApiError } from "@/lib/api";
 import { HAZARDS, getThreatLevel } from "@/lib/hazards";
+
+interface ActiveLocation {
+  city: string;
+  countryCode: string;
+  lat: number;
+  lon: number;
+  headerLabel: string;
+}
 
 function DashboardContent() {
   const { user, logout } = useAuth();
-  const [location, setLocation] = useState<GeocodeCandidate | null>(null);
+  const queryClient = useQueryClient();
+  const [active, setActive] = useState<ActiveLocation | null>(null);
+  const [result, setResult] = useState<PredictResponse | null>(null);
 
   const predictMutation = useMutation({
     mutationFn: (candidate: GeocodeCandidate) => predictionApi.predict(candidate),
+    onSuccess: (data, candidate) => {
+      setResult(data);
+      setActive({
+        city: candidate.city,
+        countryCode: candidate.country_code,
+        lat: candidate.lat,
+        lon: candidate.lon,
+        headerLabel: `${candidate.city.toUpperCase()}, ${candidate.is_us ? candidate.state : candidate.country_name}`,
+      });
+    },
+  });
+
+  const saveMutation = useMutation({
+    mutationFn: () => {
+      if (!active) throw new Error("No active location");
+      return locationsApi.save(active.city, active.countryCode, active.lat, active.lon);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["locations"] }),
   });
 
   function handleLocationSelected(candidate: GeocodeCandidate) {
-    setLocation(candidate);
     predictMutation.mutate(candidate);
   }
 
-  const result: PredictResponse | undefined = predictMutation.data;
+  function handleSavedLocationResult(params: { city: string; country: string; lat: number; lon: number; result: PredictResponse }) {
+    setResult(params.result);
+    setActive({
+      city: params.city,
+      countryCode: params.country,
+      lat: params.lat,
+      lon: params.lon,
+      headerLabel: `${params.city.toUpperCase()}, ${params.country}`,
+    });
+  }
+
   const compositeLevel = result ? getThreatLevel(result.composite_score) : null;
 
   const primaryDriver = result
@@ -54,6 +93,9 @@ function DashboardContent() {
       </header>
 
       <div className="max-w-3xl mx-auto px-5 pt-6">
+        {/* Saved locations */}
+        <SavedLocationsPanel onResult={handleSavedLocationResult} />
+
         {/* Search */}
         <LocationSearch onLocationSelected={handleLocationSelected} />
 
@@ -78,13 +120,26 @@ function DashboardContent() {
         )}
 
         {/* Results */}
-        {result && location && (
+        {result && active && (
           <>
-            <div className="mt-6 mb-2">
+            <div className="mt-6 mb-2 flex items-center justify-between flex-wrap gap-2">
               <h1 className="font-display text-2xl font-bold tracking-wide">
-                {location.city.toUpperCase()}, {location.is_us ? location.state : location.country_name}
+                {active.headerLabel}
               </h1>
+              <button
+                onClick={() => saveMutation.mutate()}
+                disabled={saveMutation.isPending || saveMutation.isSuccess}
+                className="font-display text-[10px] font-semibold tracking-widest px-3 py-1.5 rounded-md border border-base-line text-base-muted hover:text-white hover:border-hazard-thunderstorm transition-colors disabled:opacity-60"
+              >
+                {saveMutation.isSuccess ? "✓ SAVED" : saveMutation.isPending ? "SAVING..." : "☆ SAVE LOCATION"}
+              </button>
             </div>
+
+            {saveMutation.isError && (
+              <p className="font-body text-xs text-hazard-heat mb-3">
+                {saveMutation.error instanceof ApiError ? saveMutation.error.message : "Couldn't save this location."}
+              </p>
+            )}
 
             {regionWarning && (
               <div className="bg-threat-moderate/10 border border-threat-moderate/30 rounded-lg px-4 py-3 mb-4">
@@ -175,6 +230,11 @@ function DashboardContent() {
 
             {/* Recommendations */}
             <RecommendationsPanel scores={result.scores} isUs={result.is_us} />
+
+            {/* Chat — grounded on this specific snapshot */}
+            {result.snapshot_id !== null && (
+              <ChatPanel snapshotId={result.snapshot_id} locationLabel={active.city} />
+            )}
           </>
         )}
       </div>
