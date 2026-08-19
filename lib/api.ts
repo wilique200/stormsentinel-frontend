@@ -41,6 +41,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     throw new ApiError(detail, res.status);
   }
 
+  // 204 No Content (e.g. DELETE /locations/{id}) has no body to parse —
+  // calling res.json() on it throws, since there's nothing there to read.
+  if (res.status === 204) {
+    return undefined as T;
+  }
+
   return res.json();
 }
 
@@ -88,6 +94,33 @@ export interface PredictResponse {
   snapshot_id: number | null;
 }
 
+export interface ChatMessageOut {
+  id: number;
+  role: "user" | "assistant";
+  content: string;
+  created_at: string;
+}
+
+export interface SavedLocationOut {
+  id: number;
+  city: string;
+  country: string;
+  lat: number;
+  lon: number;
+  created_at: string;
+}
+
+export interface SavedLocationWithLatest extends SavedLocationOut {
+  latest_composite_score: number | null;
+  latest_queried_at: string | null;
+}
+
+export interface SnapshotHistoryPoint {
+  queried_at: string;
+  scores: Record<string, number>;
+  composite_score: number;
+}
+
 // ── Auth ─────────────────────────────────────────────────────────────────
 
 export const authApi = {
@@ -125,6 +158,44 @@ export const predictionApi = {
         save_snapshot: saveSnapshot,
       }),
     }),
+};
+
+// ── Chat ─────────────────────────────────────────────────────────────────
+// Grounded on one specific prediction snapshot — every message is scoped to
+// the snapshot_id returned by predictionApi.predict.
+
+export const chatApi = {
+  getHistory: (snapshotId: number) =>
+    request<ChatMessageOut[]>(`/predictions/${snapshotId}/chat`),
+
+  sendMessage: (snapshotId: number, message: string) =>
+    request<ChatMessageOut>(`/predictions/${snapshotId}/chat`, {
+      method: "POST",
+      body: JSON.stringify({ message }),
+    }),
+};
+
+// ── Saved Locations ──────────────────────────────────────────────────────
+
+export const locationsApi = {
+  list: () => request<SavedLocationWithLatest[]>("/locations"),
+
+  save: (city: string, country: string, lat: number, lon: number) =>
+    request<SavedLocationOut>("/locations", {
+      method: "POST",
+      body: JSON.stringify({ city, country, lat, lon }),
+    }),
+
+  remove: (locationId: number) =>
+    request<void>(`/locations/${locationId}`, { method: "DELETE" }),
+
+  predict: (locationId: number) =>
+    request<PredictResponse>(`/locations/${locationId}/predict`, {
+      method: "POST",
+    }),
+
+  history: (locationId: number, limit = 30) =>
+    request<SnapshotHistoryPoint[]>(`/locations/${locationId}/history?limit=${limit}`),
 };
 
 export { getToken };
