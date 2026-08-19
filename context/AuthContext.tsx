@@ -56,9 +56,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const result = await authApi.login(email, password);
       persistSession(result.access_token, result.user);
-      router.replace("/dashboard");
+      router.push("/dashboard");
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Login failed — try again");
+      if (e instanceof ApiError) {
+        setError(e.message);
+      } else {
+        // The request never got a response at all — wrong API URL, CORS
+        // block, or the backend is unreachable. Distinct from the backend
+        // actively rejecting the request, and worth saying so.
+        setError("Could not reach the server — check your connection or try again shortly.");
+      }
       throw e;
     }
   }
@@ -68,9 +75,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const result = await authApi.signup(email, password, displayName);
       persistSession(result.access_token, result.user);
-      router.replace("/dashboard");
+      router.push("/dashboard");
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Signup failed — try again");
+      if (e instanceof ApiError) {
+        setError(e.message);
+      } else {
+        setError("Could not reach the server — check your connection or try again shortly.");
+      }
       throw e;
     }
   }
